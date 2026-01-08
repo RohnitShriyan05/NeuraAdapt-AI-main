@@ -1,0 +1,12 @@
+numpy
+matplotlib
+scipy
+opencv-python
+pandas
+google.generativeai
+fpdf
+flask
+dlib
+whisper
+bertopic
+sentence_transformers
