@@ -5,9 +5,13 @@ export default function VideoPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
   const mainVideoRef = useRef<HTMLVideoElement>(null);
   const webcamVideoRef = useRef<HTMLVideoElement>(null);
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000';
 
   useEffect(() => {
     return () => {
@@ -24,6 +28,8 @@ export default function VideoPage() {
 
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
+    setSelectedFile(file);
+    setAnalysisResult(null);
     setError(null);
 
     try {
@@ -40,6 +46,38 @@ export default function VideoPage() {
       }
     } catch (error) {
       setError('Please allow camera access to continue');
+    }
+  };
+
+  const analyzeVideo = async () => {
+    if (!selectedFile) {
+      setError('Select a video before analyzing');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('video', selectedFile);
+
+      const response = await fetch(`${apiBase}/analyze`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.error || 'Analysis failed');
+      }
+
+      const payload = await response.json();
+      setAnalysisResult(payload);
+    } catch (err: any) {
+      setError(err.message || 'Analysis failed');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -112,7 +150,15 @@ export default function VideoPage() {
               onClick={(e) => (e.target as HTMLVideoElement).play()}
             />
           </div>
-          <button className='text-black absolute bottom-10 left-8 bg-blue-400 text-2xl p-3 rounded-md text-white font-bold'>Generate Notes</button>
+          <div className="absolute bottom-10 left-8 flex flex-col gap-3">
+            <button
+              className="bg-blue-600 text-white text-lg px-5 py-3 rounded-md font-semibold shadow-lg disabled:opacity-60"
+              onClick={analyzeVideo}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? 'Analyzing...' : 'Analyze Engagement'}
+            </button>
+          </div>
           <div className="absolute bottom-8 right-8 w-80 aspect-video rounded-xl bg-white shadow-2xl border-2 border-indigo-50 overflow-hidden transition-transform hover:scale-105 hover:shadow-2xl group">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-600/20" />
             <video
@@ -135,6 +181,46 @@ export default function VideoPage() {
             <div className="absolute top-8 left-8 px-6 py-3 bg-red-100 text-red-600 rounded-lg flex items-center gap-3">
               <span>⚠️</span>
               {error}
+            </div>
+          )}
+
+          {analysisResult && (
+            <div className="absolute top-8 right-8 w-96 bg-white shadow-2xl rounded-2xl p-6 space-y-4 border border-indigo-50">
+              <h3 className="text-lg font-semibold text-indigo-900">Engagement Summary</h3>
+              <div className="text-sm text-gray-600">
+                Avg engagement: {analysisResult.summary?.avg_engagement?.toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-600">
+                Confusion events: {analysisResult.summary?.confusion_events}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm font-semibold text-indigo-900">Heatmap</div>
+                <div className="grid grid-cols-12 gap-1">
+                  {analysisResult.heatmap?.slice(0, 48).map((bin: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="h-3 rounded"
+                      style={{
+                        backgroundColor: `rgba(59, 130, 246, ${Math.min(1, bin.avg_engagement + 0.2)})`,
+                      }}
+                      title={`${bin.start.toFixed(1)}s - ${bin.end.toFixed(1)}s`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm font-semibold text-indigo-900">Notes</div>
+                <div className="max-h-40 overflow-y-auto space-y-2 text-xs text-gray-600">
+                  {analysisResult.notes?.map((note: any, idx: number) => (
+                    <div key={idx} className="p-2 bg-indigo-50 rounded">
+                      <div className="font-semibold">{note.timestamp.toFixed(1)}s</div>
+                      <div>{note.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

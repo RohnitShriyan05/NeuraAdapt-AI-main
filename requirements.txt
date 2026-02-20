@@ -6,7 +6,13 @@ pandas
 google.generativeai
 fpdf
 flask
+flask-cors
 dlib
 whisper
 bertopic
 sentence_transformers
+mediapipe
+sqlalchemy
+psycopg2-binary
+boto3
+gunicorn
