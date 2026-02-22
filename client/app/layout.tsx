@@ -28,7 +28,7 @@ const NavBar = () => {
     <nav className="sticky top-0 z-40 w-full py-8 bg-white text-black px-20 flex justify-between">
       <p className="text-blue-600 font-bold text-2xl">NeuraAdapt</p>
       <Link href="/Learning">
-        <span className="p-3 rounded-full bg-blue-600 text-white">Start Learning</span>
+        <span className="p-3 rounded-full bg-blue-600 text-white">Start</span>
       </Link>
     </nav>
   );
