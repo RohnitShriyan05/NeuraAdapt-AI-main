@@ -1,0 +1,46 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/neuraadapt
+      STORAGE_BACKEND: local
+      STORAGE_PATH: output/sessions
+      SAMPLE_FPS: 15
+      CONFUSION_THRESHOLD: 0.7
+      CONFUSION_WINDOW_SEC: 3
+      HEATMAP_BIN_SEC: 1
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    volumes:
+      - ./output:/app/output
+      - ./generated_pdfs:/app/generated_pdfs
+
+  web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: neuraadapt
+    ports:
+      - "5432:5432"
+    volumes:
+      - neuraadapt_db:/var/lib/postgresql/data
+
+volumes:
+  neuraadapt_db:

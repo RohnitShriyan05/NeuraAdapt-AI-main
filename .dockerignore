@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.env
+.env.*
+output/
+client/node_modules/
+client/.next/
+client/out/
+node_modules/
+.git/
